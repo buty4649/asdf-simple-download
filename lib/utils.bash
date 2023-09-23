@@ -2,10 +2,9 @@
 
 set -euo pipefail
 
-# TODO: Ensure this is the correct GitHub homepage where releases can be downloaded for simple-download.
-GH_REPO="https://github.com/buty4649/asdf-simple-download/"
-TOOL_NAME="simple-download"
-TOOL_TEST="simple-download --help"
+TOOL_NAME="$(basename $(dirname "$(dirname "${BASH_SOURCE[0]}")"))"
+
+[ -f "${plugin_dir}/plugin.config" ] && source "${plugin_dir}/plugin.config"
 
 fail() {
 	echo -e "asdf-$TOOL_NAME: $*"
@@ -14,7 +13,6 @@ fail() {
 
 curl_opts=(-fsSL)
 
-# NOTE: You might want to remove this if simple-download is not hosted on GitHub releases.
 if [ -n "${GITHUB_API_TOKEN:-}" ]; then
 	curl_opts=("${curl_opts[@]}" -H "Authorization: token $GITHUB_API_TOKEN")
 fi
@@ -24,25 +22,14 @@ sort_versions() {
 		LC_ALL=C sort -t. -k 1,1 -k 2,2n -k 3,3n -k 4,4n -k 5,5n | awk '{print $2}'
 }
 
-list_github_tags() {
-	git ls-remote --tags --refs "$GH_REPO" |
-		grep -o 'refs/tags/.*' | cut -d/ -f3- |
-		sed 's/^v//' # NOTE: You might want to adapt this sed to remove non-version strings from tags
-}
-
 list_all_versions() {
-	# TODO: Adapt this. By default we simply list the tag names from GitHub releases.
-	# Change this function if simple-download has other means of determining installable versions.
-	list_github_tags
+	echo latest
 }
 
 download_release() {
-	local version filename url
-	version="$1"
-	filename="$2"
-
-	# TODO: Adapt the release URL convention for simple-download
-	url="$GH_REPO/archive/v${version}.tar.gz"
+	local version="$1"
+	local filename="$2"
+	local url="$ASDF_PLUGIN_DOWNLOAD_URL"
 
 	echo "* Downloading $TOOL_NAME release $version..."
 	curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -54,21 +41,29 @@ install_version() {
 	local install_path="${3%/bin}/bin"
 
 	if [ "$install_type" != "version" ]; then
-		fail "asdf-$TOOL_NAME supports release installs only"
+		fail "asdf-${TOOL_NAME} supports release installs only"
 	fi
 
 	(
 		mkdir -p "$install_path"
 		cp -r "$ASDF_DOWNLOAD_PATH"/* "$install_path"
 
-		# TODO: Assert simple-download executable exists.
-		local tool_cmd
-		tool_cmd="$(echo "$TOOL_TEST" | cut -d' ' -f1)"
-		test -x "$install_path/$tool_cmd" || fail "Expected $install_path/$tool_cmd to be executable."
-
 		echo "$TOOL_NAME $version installation was successful!"
 	) || (
 		rm -rf "$install_path"
 		fail "An error occurred while installing $TOOL_NAME $version."
 	)
+}
+
+setup_plugin_config() {
+	local plugin_dir="$1"
+	if  [ ! -f "${plugin_dir}/plugin.config" ]; then
+		local env_names="ASDF_PLUGIN_DOWNLOAD_URL"
+		for name in $env_names; do
+			local value="$(eval echo \$$name)"
+			[ -z "$value" ] && fail "Required environment variable $name not set"
+			echo "$name=$value" >> "${plugin_dir}/plugin.config"
+		done
+		echo "export ${env_names}" >> "${plugin_dir}/plugin.config"
+	fi
 }

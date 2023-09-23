@@ -1,0 +1,24 @@
+FROM ubuntu:latest
+
+ENV ASDF_VERSION v0.13.1
+
+RUN <<COMMAND
+    apt-get update
+    apt-get install -y --no-install-recommends curl git ca-certificates
+    apt-get clean all
+COMMAND
+
+RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch ${ASDF_VERSION}
+
+RUN <<COMMAND
+    cat <<EOF > /docker-entrypoint.sh
+#!/bin/bash
+source ~/.asdf/asdf.sh
+exec \$*
+EOF
+
+    chmod +x /docker-entrypoint.sh
+COMMAND
+
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
+CMD [ "bash" ]

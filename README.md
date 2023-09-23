@@ -8,10 +8,15 @@
 
 # Contents
 
+- [Usage](#usage)
 - [Dependencies](#dependencies)
 - [Install](#install)
 - [Contributing](#contributing)
 - [License](#license)
+
+# Usage
+
+asdf-simple-download is an asdf plugin that allows asdf to handle download files from any arbitrary URL. It enables you to easily add any software for which an asdf plugin does not exist to asdf.
 
 # Dependencies
 
@@ -22,28 +27,32 @@
 
 # Install
 
-Plugin:
+Install plugin:
 
 ```shell
-asdf plugin add simple-download
-# or
-asdf plugin add simple-download https://github.com/buty4649/asdf-simple-download.git
+# require: Set the URL of the archive file to be downloaded.
+export ASDF_PLUGIN_DOWNLOAD_URL=https://example.com/example-software-1.0.0.tar.gz
+
+# Set an arbitrary plugin name
+export PLUGIN_NAME=example
+
+asdf plugin add $PLUGIN_NAME https://github.com/buty4649/asdf-simple-download.git
 ```
 
-simple-download:
+Use plugin:
 
 ```shell
 # Show all installable versions
-asdf list-all simple-download
+asdf list-all $PLUGIN_NAME
 
 # Install specific version
-asdf install simple-download latest
+asdf install $PLUGIN_NAME latest
 
 # Set a version globally (on your ~/.tool-versions file)
-asdf global simple-download latest
+asdf global $PLUGIN_NAME latest
 
 # Now simple-download commands are available
-simple-download --help
+$PLUGIN_NAME --help
 ```
 
 Check [asdf](https://github.com/asdf-vm/asdf) readme for more instructions on how to
